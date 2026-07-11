@@ -4,17 +4,8 @@
 
     -- Main Program --
 
-    
-    
-    
-    Author: Ben Hendriks
-    theuglycygnet@gmail.com
-
-    Base game from Harvard's CS50 course, by
-    Colton Ogden
+    Author: Colton Ogden
     cogden@cs50.harvard.edu
-
-
 
     Originally programmed by Atari in 1972. Features two
     paddles, controlled by players, with the goal of getting
@@ -118,6 +109,20 @@ function love.load()
     -- player who won the game; not set to a proper value until we reach
     -- that state in the game
     winningPlayer = 0
+
+    -- whether the game is single-player (AI controls player 2) or
+    -- two-player (player 2 uses the keyboard)
+    gameMode = nil
+
+    -- AI settings: 'easy', 'medium', 'hard'
+    ai = {
+        difficulty = 'medium',
+        profiles = {
+            easy = { maxSpeed = 120, gain = 2.0, error = 20 },
+            medium = { maxSpeed = 200, gain = 1.3, error = 12 },
+            hard = { maxSpeed = 320, gain = 1.0, error = 6 }
+        }
+    }
 
     -- the state of our game; can be any of the following:
     -- 1. 'start' (the beginning of the game, before first serve)
@@ -248,7 +253,36 @@ function love.update(dt)
     end
 
     -- player 2
-    if love.keyboard.isDown('up') then
+    if gameMode == '1player' then
+        local profile = ai.profiles[ai.difficulty] or ai.profiles.medium
+
+        -- Only actively track the ball when it's heading toward the AI or on AI's half.
+        if ball.dx > 0 or ball.x > VIRTUAL_WIDTH / 2 then
+            -- target the ball's center relative to paddle center
+            local targetY = ball.y + (ball.height or 4) / 2 - player2.height / 2
+            local delta = targetY - player2.y
+            local deadzone = 5 -- prevents tiny adjustments that cause jitter
+
+            if math.abs(delta) > deadzone then
+                -- proportional control scaled by gain, clamped to profile maxSpeed,
+                -- with a small random error to keep AI beatable on lower difficulties
+                local speed = math.min(profile.maxSpeed, math.abs(delta) * profile.gain + math.random(-profile.error, profile.error))
+                player2.dy = (delta < 0) and -speed or speed
+            else
+                player2.dy = 0
+            end
+        else
+            -- ball not approaching: gently return paddle to center to avoid edge-hugging
+            local centerDelta = (VIRTUAL_HEIGHT / 2) - (player2.y + player2.height / 2)
+            local centerDead = 3
+            if math.abs(centerDelta) > centerDead then
+                local speed = math.min(profile.maxSpeed / 2, math.abs(centerDelta) * 0.6)
+                player2.dy = (centerDelta < 0) and -speed or speed
+            else
+                player2.dy = 0
+            end
+        end
+    elseif love.keyboard.isDown('up') then
         player2.dy = -PADDLE_SPEED
     elseif love.keyboard.isDown('down') then
         player2.dy = PADDLE_SPEED
@@ -277,12 +311,16 @@ function love.keypressed(key)
     if key == 'escape' then
         -- the function LÖVE2D uses to quit the application
         love.event.quit()
+    elseif key == '1' and gameState == 'start' then
+        gameMode = '1player'
+        gameState = 'serve'
+    elseif key == '2' and gameState == 'start' then
+        gameMode = '2player'
+        gameState = 'serve'
     -- if we press enter during either the start or serve phase, it should
     -- transition to the next appropriate state
     elseif key == 'enter' or key == 'return' then
-        if gameState == 'start' then
-            gameState = 'serve'
-        elseif gameState == 'serve' then
+        if gameState == 'serve' then
             gameState = 'play'
         elseif gameState == 'done' then
             -- game is simply in a restart phase here, but will set the serving
@@ -320,7 +358,8 @@ function love.draw()
         -- UI messages
         love.graphics.setFont(smallFont)
         love.graphics.printf('Welcome to Pong!', 0, 10, VIRTUAL_WIDTH, 'center')
-        love.graphics.printf('Press Enter to begin!', 0, 20, VIRTUAL_WIDTH, 'center')
+        love.graphics.printf('Press 1 for 1 Player', 0, 20, VIRTUAL_WIDTH, 'center')
+        love.graphics.printf('Press 2 for 2 Players', 0, 32, VIRTUAL_WIDTH, 'center')
     elseif gameState == 'serve' then
         -- UI messages
         love.graphics.setFont(smallFont)
@@ -371,6 +410,6 @@ function displayFPS()
     -- simple FPS display across all states
     love.graphics.setFont(smallFont)
     love.graphics.setColor(0, 255/255, 0, 255/255)
-    love.graphics.print('FPS: ' .. tostring(love.timer.getFPS()), 10, 10)
+    love.graphics.printf('FPS: ' .. tostring(love.timer.getFPS()), 0, VIRTUAL_HEIGHT-10, VIRTUAL_WIDTH, 'center')
     love.graphics.setColor(255, 255, 255, 255)
 end

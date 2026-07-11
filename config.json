@@ -1,0 +1,10 @@
+{
+    "client": {
+        "showBlockError": true
+    },
+    "server": {
+        "globals": [
+            "love"
+        ]
+    }
+}
