@@ -482,7 +482,7 @@ function love.draw()
         displayOpponentName()
         displayOpponentStats()
     end
-    
+    DisplayPowerShotsRemaining()
 
     player1:render()
     player2:render()
@@ -533,9 +533,18 @@ function displayOpponentStats()
     -- simple FPS display across all states
     love.graphics.setFont(smallFont)
     love.graphics.setColor(0.5, 0.5, 0.5, 1)
-    love.graphics.print('maxSpeed: ' .. tostring(ai.profiles[ai.difficulty].maxSpeed), VIRTUAL_WIDTH -75, VIRTUAL_HEIGHT - 48)
-    love.graphics.print('gain: ' .. tostring(ai.profiles[ai.difficulty].gain), VIRTUAL_WIDTH -75, VIRTUAL_HEIGHT - 36)
-    love.graphics.print('error: '.. tostring(ai.profiles[ai.difficulty].error), VIRTUAL_WIDTH -75, VIRTUAL_HEIGHT - 24)
+    love.graphics.printf('maxSpeed: ' .. tostring(ai.profiles[ai.difficulty].maxSpeed), 0, VIRTUAL_HEIGHT - 48,VIRTUAL_WIDTH,'right')
+    love.graphics.printf('gain: ' .. tostring(ai.profiles[ai.difficulty].gain), 0, VIRTUAL_HEIGHT - 36,VIRTUAL_WIDTH,'right')
+    love.graphics.printf('error: '.. tostring(ai.profiles[ai.difficulty].error), 0, VIRTUAL_HEIGHT - 24,VIRTUAL_WIDTH,'right')
     love.graphics.setColor(1, 1, 1, 1)
+end
+
+function DisplayPowerShotsRemaining()
+    -- simple FPS display across all states
+    love.graphics.setFont(smallFont)
+    love.graphics.setColor(1, 1, 0, 1)
+    love.graphics.printf('Power Shots: ' .. tostring(player1.powerShots), 0, VIRTUAL_HEIGHT-10, VIRTUAL_WIDTH, 'left')
+    love.graphics.printf('Power Shots: ' .. tostring(player2.powerShots), 0, VIRTUAL_HEIGHT-10, VIRTUAL_WIDTH, 'right')
+    love.graphics.setColor(1, 1, 1, 1)  
 end
 
