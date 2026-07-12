@@ -37,6 +37,7 @@ function Paddle:init(x, y, width, height)
     self.hitTimer = 0
     self.powerShots = 1
     self.powerReady = false
+    self.powerUsed = false
 end
 
 function Paddle:update(dt)
@@ -77,5 +78,12 @@ end
     newest version of LÖVE2D, you can even draw rounded rectangles!
 ]]
 function Paddle:render()
+    if self.powerReady then
+        love.graphics.setColor(1, 1, 0, 1)
+    else
+        love.graphics.setColor(1, 1, 1, 1)
+    end
+
     love.graphics.rectangle('fill', self.x, self.y, self.width, self.height)
+    love.graphics.setColor(1, 1, 1, 1)
 end

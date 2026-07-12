@@ -119,11 +119,11 @@ function love.load()
     ai = {
         difficulty = 'CARL',
         profiles = {
-            ABE = { maxSpeed = 120, gain = 1.0, error = 20 },
-            BOB = { maxSpeed = 220, gain = 2.0, error = 10 },
-            CARL = { maxSpeed = 450, gain = 10.0, error = 0 },
-            DAVE = { maxSpeed = 1000, gain = 11.0, error = 0 },
-            EVE = { maxSpeed = 1000, gain = 20.0, error = 0 }
+            ABE = { maxSpeed = 120, gain = 1.0, error = 20, powerChance = 0.08 },
+            BOB = { maxSpeed = 220, gain = 2.0, error = 10, powerChance = 0.16 },
+            CARL = { maxSpeed = 450, gain = 10.0, error = 0, powerChance = 1.00},
+            DAVE = { maxSpeed = 1000, gain = 11.0, error = 0, powerChance = 0.32 },
+            EVE = { maxSpeed = 1000, gain = 20.0, error = 0, powerChance = 0.4 }
         }
     }
 
@@ -173,6 +173,7 @@ function love.update(dt)
             if player1.powerReady and player1.powerShots > 0 then
                 player1.powerShots = player1.powerShots - 1
                 player1.powerReady = false
+                player1.powerUsed = true
                 ball:activatePower(1)
                 player1:flashImpact(1)
                 multiplier = 1.35
@@ -197,6 +198,7 @@ function love.update(dt)
             if player2.powerReady and player2.powerShots > 0 then
                 player2.powerShots = player2.powerShots - 1
                 player2.powerReady = false
+                player2.powerUsed = true
                 ball:activatePower(2)
                 player2:flashImpact(-1)
                 multiplier = 1.35
@@ -250,6 +252,8 @@ function love.update(dt)
                 player2.powerShots = 1
                 player1.powerReady = false
                 player2.powerReady = false
+                player1.powerUsed = false
+                player2.powerUsed = false
                 gameState = 'serve'
                 -- places the ball in the middle of the screen, no velocity
                 ball:reset()
@@ -270,6 +274,8 @@ function love.update(dt)
                 player2.powerShots = 1
                 player1.powerReady = false
                 player2.powerReady = false
+                player1.powerUsed = false
+                player2.powerUsed = false
                 gameState = 'serve'
                 ball:reset()
             end
@@ -291,6 +297,13 @@ function love.update(dt)
     -- player 2
     if gameMode == '1player' and gameState ~= 'selectOpponent' then
         local profile = ai.profiles[ai.difficulty] or ai.profiles.CARL
+
+        if gameState == 'play' and player2.powerShots > 0 and not player2.powerReady and not player2.powerUsed and (ball.dx > 0 or ball.x > VIRTUAL_WIDTH / 2) then
+            local powerChance = profile.powerChance or 0.2
+            if math.random() < powerChance * dt then
+                player2.powerReady = true
+            end
+        end
 
         -- Only actively track the ball when it's heading toward the AI or on AI's half.
         if ball.dx > 0 or ball.x > VIRTUAL_WIDTH / 2 then
@@ -356,14 +369,17 @@ function love.keypressed(key)
         player2.powerShots = 1
         player1.powerReady = false
         player2.powerReady = false
+        player1.powerUsed = false
+        player2.powerUsed = false
         gameState = 'serve'
     -- if we press enter during either the start or serve phase, it should
     -- transition to the next appropriate state
     elseif key == 'd' and gameState == 'play' then
         if player1.powerShots > 0 then
             player1.powerReady = true
+
         end
-    elseif key == 'right' and gameState == 'play' then
+    elseif key == 'right' and gameState == 'play' and gameMode ~= '1player' then
         if player2.powerShots > 0 then
             player2.powerReady = true
         end
@@ -377,6 +393,8 @@ function love.keypressed(key)
             player2.powerShots = 1
             player1.powerReady = false
             player2.powerReady = false
+            player1.powerUsed = false
+            player2.powerUsed = false
             gameState = 'serve'
 
             ball:reset()
@@ -408,6 +426,8 @@ function love.keypressed(key)
         player2.powerShots = 1
         player1.powerReady = false
         player2.powerReady = false
+        player1.powerUsed = false
+        player2.powerUsed = false
         gameState = 'serve'
     end
 end
@@ -469,7 +489,7 @@ function love.draw()
     ball:render()
 
     -- display FPS for debugging; simply comment out to remove
-    displayFPS()
+    --displayFPS()
 
     -- end our drawing to push
     push.finish()
@@ -481,10 +501,12 @@ end
 function displayScore()
     -- score display
     love.graphics.setFont(scoreFont)
+    love.graphics.setColor(0.5, 0.5, 0.5, 1)
     love.graphics.print(tostring(player1Score), VIRTUAL_WIDTH / 2 - 50,
         VIRTUAL_HEIGHT / 3)
     love.graphics.print(tostring(player2Score), VIRTUAL_WIDTH / 2 + 30,
         VIRTUAL_HEIGHT / 3)
+    love.graphics.setColor(1, 1, 1, 1)
 end
 
 --[[
@@ -493,25 +515,27 @@ end
 function displayFPS()
     -- simple FPS display across all states
     love.graphics.setFont(smallFont)
-    love.graphics.setColor(0, 255/255, 0, 255/255)
+    love.graphics.setColor(0, 1, 0, 1)
     love.graphics.printf('FPS: ' .. tostring(love.timer.getFPS()), 0, VIRTUAL_HEIGHT-10, VIRTUAL_WIDTH, 'center')
-    love.graphics.setColor(255, 255, 255, 255)
+    love.graphics.setColor(1, 1, 1, 1)
 end
 
 function displayOpponentName()
     -- simple FPS display across all states
     love.graphics.setFont(smallFont)
-    --love.graphics.setColor(0, 255/255, 0, 255/255)
+    love.graphics.setColor(0.5, 0.5, 0.5, 1)
     love.graphics.print('YOU', VIRTUAL_WIDTH / 2 - 50, VIRTUAL_HEIGHT / 3 -12)
     love.graphics.print(ai.difficulty, VIRTUAL_WIDTH / 2 + 30, VIRTUAL_HEIGHT / 3 -12)
-    --love.graphics.setColor(255, 255, 255, 255)
+    love.graphics.setColor(1, 1, 1, 1)
 end
 
 function displayOpponentStats()
     -- simple FPS display across all states
     love.graphics.setFont(smallFont)
+    love.graphics.setColor(0.5, 0.5, 0.5, 1)
     love.graphics.print('maxSpeed: ' .. tostring(ai.profiles[ai.difficulty].maxSpeed), VIRTUAL_WIDTH -75, VIRTUAL_HEIGHT - 48)
     love.graphics.print('gain: ' .. tostring(ai.profiles[ai.difficulty].gain), VIRTUAL_WIDTH -75, VIRTUAL_HEIGHT - 36)
     love.graphics.print('error: '.. tostring(ai.profiles[ai.difficulty].error), VIRTUAL_WIDTH -75, VIRTUAL_HEIGHT - 24)
+    love.graphics.setColor(1, 1, 1, 1)
 end
 
