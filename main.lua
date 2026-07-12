@@ -119,11 +119,11 @@ function love.load()
     ai = {
         difficulty = 'CARL',
         profiles = {
-            ABE = { maxSpeed = 120, gain = 1.0, error = 20, powerChance = 0.08 },
-            BOB = { maxSpeed = 220, gain = 2.0, error = 10, powerChance = 0.16 },
-            CARL = { maxSpeed = 450, gain = 10.0, error = 0, powerChance = 1.00},
-            DAVE = { maxSpeed = 1000, gain = 11.0, error = 0, powerChance = 0.32 },
-            EVE = { maxSpeed = 1000, gain = 20.0, error = 0, powerChance = 0.4 }
+            ABE = { maxSpeed = 120, gain = 1.0, error = 20, powerChance = 0.08, swingChance = 0.06 },
+            BOB = { maxSpeed = 220, gain = 2.0, error = 10, powerChance = 0.16, swingChance = 0.12 },
+            CARL = { maxSpeed = 450, gain = 10.0, error = 0, powerChance = 0.5, swingChance = 1.0 },
+            DAVE = { maxSpeed = 1000, gain = 11.0, error = 0, powerChance = 0.32, swingChance = 0.24 },
+            EVE = { maxSpeed = 1000, gain = 20.0, error = 0, powerChance = 0.4, swingChance = 0.3 }
         }
     }
 
@@ -134,6 +134,13 @@ function love.load()
     -- 4. 'done' (the game is over, with a victor, ready for restart)
     -- 5. 'selectOpponent' (waiting for player to select AI or 2-player mode)
     gameState = 'start'
+
+    -- screen shake state
+    shakeTimeLeft = 0
+    shakeDuration = 0
+    shakeMagnitude = 0
+    shakeOffsetX = 0
+    shakeOffsetY = 0
 end
 
 --[[
@@ -146,6 +153,33 @@ function love.resize(w, h)
     push.resize(w, h)
 end
 
+function triggerScreenShake(strength, duration)
+    shakeMagnitude = math.max(shakeMagnitude, strength)
+    shakeDuration = math.max(shakeDuration, duration)
+    shakeTimeLeft = math.max(shakeTimeLeft, duration)
+end
+
+function updateScreenShake(dt)
+    if shakeTimeLeft > 0 then
+        shakeTimeLeft = math.max(0, shakeTimeLeft - dt)
+        local ratio = shakeTimeLeft / math.max(shakeDuration, 0.0001)
+        local currentMagnitude = shakeMagnitude * math.max(0, ratio)
+
+        shakeOffsetX = math.random(-currentMagnitude, currentMagnitude)
+        shakeOffsetY = math.random(-currentMagnitude, currentMagnitude)
+
+        if shakeTimeLeft <= 0 then
+            shakeMagnitude = 0
+            shakeDuration = 0
+            shakeOffsetX = 0
+            shakeOffsetY = 0
+        end
+    else
+        shakeOffsetX = 0
+        shakeOffsetY = 0
+    end
+end
+
 --[[
     Called every frame, passing in `dt` since the last frame. `dt`
     is short for `deltaTime` and is measured in seconds. Multiplying
@@ -155,6 +189,8 @@ end
     across system hardware.
 ]]
 function love.update(dt)
+    updateScreenShake(dt)
+
     if gameState == 'serve' then
         -- before switching to play, initialize ball's velocity based
         -- on player who last scored
@@ -170,13 +206,29 @@ function love.update(dt)
         -- at which it collided, then playing a sound effect
         if ball:collides(player1) then
             local multiplier = 1.03
-            if player1.powerReady and player1.powerShots > 0 then
+            local collisionSpeed = math.sqrt(ball.dx * ball.dx + ball.dy * ball.dy)
+            local shakeAmount = 1.2 + (collisionSpeed / 700)
+            triggerScreenShake(shakeAmount, 0.05)
+
+            if player1.swingReady and player1.swingShots > 0 then
+                player1.swingShots = player1.swingShots - 1
+                player1.swingReady = false
+                player1.powerReady = false
+                player1.specialShotReady = false
+                player1.swingUsed = true
+                ball:activateSwing(1, -1)
+                player1:flashImpact(1)
+                multiplier = 1.16
+            elseif player1.powerReady and player1.powerShots > 0 then
                 player1.powerShots = player1.powerShots - 1
                 player1.powerReady = false
+                player1.swingReady = false
+                player1.specialShotReady = false
                 player1.powerUsed = true
                 ball:activatePower(1)
                 player1:flashImpact(1)
                 multiplier = 1.35
+                triggerScreenShake(3.8 + (collisionSpeed / 170), 0.12)
             elseif ball.powered and ball.powerOwner == 2 then
                 ball:clearPower()
             end
@@ -191,17 +243,34 @@ function love.update(dt)
                 ball.dy = math.random(10, 150)
             end
 
+            player1.specialShotReady = false
             sounds['paddle_hit']:play()
         end
         if ball:collides(player2) then
             local multiplier = 1.03
-            if player2.powerReady and player2.powerShots > 0 then
+            local collisionSpeed = math.sqrt(ball.dx * ball.dx + ball.dy * ball.dy)
+            local shakeAmount = 1.2 + (collisionSpeed / 700)
+            triggerScreenShake(shakeAmount, 0.05)
+
+            if player2.swingReady and player2.swingShots > 0 then
+                player2.swingShots = player2.swingShots - 1
+                player2.swingReady = false
+                player2.powerReady = false
+                player2.specialShotReady = false
+                player2.swingUsed = true
+                ball:activateSwing(2, 1)
+                player2:flashImpact(-1)
+                multiplier = 1.16
+            elseif player2.powerReady and player2.powerShots > 0 then
                 player2.powerShots = player2.powerShots - 1
                 player2.powerReady = false
+                player2.swingReady = false
+                player2.specialShotReady = false
                 player2.powerUsed = true
                 ball:activatePower(2)
                 player2:flashImpact(-1)
                 multiplier = 1.35
+                triggerScreenShake(3.8 + (collisionSpeed / 170), 0.12)
             elseif ball.powered and ball.powerOwner == 1 then
                 ball:clearPower()
             end
@@ -216,6 +285,7 @@ function love.update(dt)
                 ball.dy = math.random(10, 150)
             end
 
+            player2.specialShotReady = false
             sounds['paddle_hit']:play()
         end
 
@@ -254,6 +324,14 @@ function love.update(dt)
                 player2.powerReady = false
                 player1.powerUsed = false
                 player2.powerUsed = false
+                player1.swingShots = 1
+                player2.swingShots = 1
+                player1.swingReady = false
+                player2.swingReady = false
+                player1.swingUsed = false
+                player2.swingUsed = false
+                player1.specialShotReady = false
+                player2.specialShotReady = false
                 gameState = 'serve'
                 -- places the ball in the middle of the screen, no velocity
                 ball:reset()
@@ -276,6 +354,14 @@ function love.update(dt)
                 player2.powerReady = false
                 player1.powerUsed = false
                 player2.powerUsed = false
+                player1.swingShots = 1
+                player2.swingShots = 1
+                player1.swingReady = false
+                player2.swingReady = false
+                player1.swingUsed = false
+                player2.swingUsed = false
+                player1.specialShotReady = false
+                player2.specialShotReady = false
                 gameState = 'serve'
                 ball:reset()
             end
@@ -298,10 +384,19 @@ function love.update(dt)
     if gameMode == '1player' and gameState ~= 'selectOpponent' then
         local profile = ai.profiles[ai.difficulty] or ai.profiles.CARL
 
-        if gameState == 'play' and player2.powerShots > 0 and not player2.powerReady and not player2.powerUsed and (ball.dx > 0 or ball.x > VIRTUAL_WIDTH / 2) then
+        if gameState == 'play' and player2.swingShots > 0 and not player2.swingReady and not player2.swingUsed and not player2.powerReady and not player2.specialShotReady and (ball.dx > 0 or ball.x > VIRTUAL_WIDTH / 2) then
+            local swingChance = profile.swingChance or 0.2
+            if math.random() < swingChance * dt then
+                player2.swingReady = true
+                player2.powerReady = false
+                player2.specialShotReady = true
+            end
+        elseif gameState == 'play' and player2.powerShots > 0 and not player2.powerReady and not player2.powerUsed and not player2.swingReady and not player2.specialShotReady and (ball.dx > 0 or ball.x > VIRTUAL_WIDTH / 2) then
             local powerChance = profile.powerChance or 0.2
             if math.random() < powerChance * dt then
                 player2.powerReady = true
+                player2.swingReady = false
+                player2.specialShotReady = true
             end
         end
 
@@ -371,17 +466,40 @@ function love.keypressed(key)
         player2.powerReady = false
         player1.powerUsed = false
         player2.powerUsed = false
+        player1.swingShots = 1
+        player2.swingShots = 1
+        player1.swingReady = false
+        player2.swingReady = false
+        player1.swingUsed = false
+        player2.swingUsed = false
+        player1.specialShotReady = false
+        player2.specialShotReady = false
         gameState = 'serve'
     -- if we press enter during either the start or serve phase, it should
     -- transition to the next appropriate state
+    elseif key == 'a' and gameState == 'play' then
+        if player1.swingShots > 0 and not player1.specialShotReady then
+            player1.swingReady = true
+            player1.powerReady = false
+            player1.specialShotReady = true
+        end
     elseif key == 'd' and gameState == 'play' then
-        if player1.powerShots > 0 then
+        if player1.powerShots > 0 and not player1.specialShotReady then
             player1.powerReady = true
-
+            player1.swingReady = false
+            player1.specialShotReady = true
+        end
+    elseif key == 'left' and gameState == 'play' and gameMode ~= '1player' then
+        if player2.swingShots > 0 and not player2.specialShotReady then
+            player2.swingReady = true
+            player2.powerReady = false
+            player2.specialShotReady = true
         end
     elseif key == 'right' and gameState == 'play' and gameMode ~= '1player' then
-        if player2.powerShots > 0 then
+        if player2.powerShots > 0 and not player2.specialShotReady then
             player2.powerReady = true
+            player2.swingReady = false
+            player2.specialShotReady = true
         end
     elseif key == 'enter' or key == 'return' then
         if gameState == 'serve' then
@@ -395,6 +513,14 @@ function love.keypressed(key)
             player2.powerReady = false
             player1.powerUsed = false
             player2.powerUsed = false
+            player1.swingShots = 1
+            player2.swingShots = 1
+            player1.swingReady = false
+            player2.swingReady = false
+            player1.swingUsed = false
+            player2.swingUsed = false
+            player1.specialShotReady = false
+            player2.specialShotReady = false
             gameState = 'serve'
 
             ball:reset()
@@ -428,6 +554,12 @@ function love.keypressed(key)
         player2.powerReady = false
         player1.powerUsed = false
         player2.powerUsed = false
+        player1.swingShots = 1
+        player2.swingShots = 1
+        player1.swingReady = false
+        player2.swingReady = false
+        player1.swingUsed = false
+        player2.swingUsed = false
         gameState = 'serve'
     end
 end
@@ -441,6 +573,8 @@ function love.draw()
     push.start()
 
     love.graphics.clear(40/255, 45/255, 52/255, 255/255)
+
+    love.graphics.translate(shakeOffsetX, shakeOffsetY)
 
     -- render different things depending on which part of the game we're in
     if gameState == 'start' then
@@ -483,6 +617,7 @@ function love.draw()
         displayOpponentStats()
     end
     DisplayPowerShotsRemaining()
+    DisplaySwingShotsRemaining()
 
     player1:render()
     player2:render()
@@ -490,6 +625,8 @@ function love.draw()
 
     -- display FPS for debugging; simply comment out to remove
     --displayFPS()
+
+    love.graphics.translate(-shakeOffsetX, -shakeOffsetY)
 
     -- end our drawing to push
     push.finish()
@@ -533,9 +670,9 @@ function displayOpponentStats()
     -- simple FPS display across all states
     love.graphics.setFont(smallFont)
     love.graphics.setColor(0.5, 0.5, 0.5, 1)
-    love.graphics.printf('maxSpeed: ' .. tostring(ai.profiles[ai.difficulty].maxSpeed), 0, VIRTUAL_HEIGHT - 48,VIRTUAL_WIDTH,'right')
-    love.graphics.printf('gain: ' .. tostring(ai.profiles[ai.difficulty].gain), 0, VIRTUAL_HEIGHT - 36,VIRTUAL_WIDTH,'right')
-    love.graphics.printf('error: '.. tostring(ai.profiles[ai.difficulty].error), 0, VIRTUAL_HEIGHT - 24,VIRTUAL_WIDTH,'right')
+    love.graphics.printf('maxSpeed: ' .. tostring(ai.profiles[ai.difficulty].maxSpeed), 0, VIRTUAL_HEIGHT - 58,VIRTUAL_WIDTH,'right')
+    love.graphics.printf('gain: ' .. tostring(ai.profiles[ai.difficulty].gain), 0, VIRTUAL_HEIGHT - 46,VIRTUAL_WIDTH,'right')
+    love.graphics.printf('error: '.. tostring(ai.profiles[ai.difficulty].error), 0, VIRTUAL_HEIGHT - 34,VIRTUAL_WIDTH,'right')
     love.graphics.setColor(1, 1, 1, 1)
 end
 
@@ -548,3 +685,11 @@ function DisplayPowerShotsRemaining()
     love.graphics.setColor(1, 1, 1, 1)  
 end
 
+function DisplaySwingShotsRemaining()
+    -- simple FPS display across all states
+    love.graphics.setFont(smallFont)
+    love.graphics.setColor(0.2, 0.5, 1, 1)
+    love.graphics.printf('Swing Shots: ' .. tostring(player1.swingShots), 0, VIRTUAL_HEIGHT-22, VIRTUAL_WIDTH, 'left')
+    love.graphics.printf('Swing Shots: ' .. tostring(player2.swingShots), 0, VIRTUAL_HEIGHT-22, VIRTUAL_WIDTH, 'right')
+    love.graphics.setColor(1, 1, 1, 1)  
+end

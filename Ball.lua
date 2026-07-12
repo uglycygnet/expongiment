@@ -29,6 +29,13 @@ function Ball:init(x, y, width, height)
     self.powered = false
     self.powerOwner = nil
     self.trail = {}
+
+    -- swing-shot state
+    self.swinging = false
+    self.swingOwner = nil
+    self.swingDirection = 1
+    self.swingTimer = 0
+    self.swingStrength = 260
 end
 
 --[[
@@ -63,6 +70,10 @@ function Ball:reset()
     self.powered = false
     self.powerOwner = nil
     self.trail = {}
+    self.swinging = false
+    self.swingOwner = nil
+    self.swingDirection = 1
+    self.swingTimer = 0
 end
 
 function Ball:update(dt)
@@ -73,6 +84,19 @@ function Ball:update(dt)
         table.insert(self.trail, { x = self.x, y = self.y })
         if #self.trail > 12 then
             table.remove(self.trail, 1)
+        end
+    end
+
+    if self.swinging then
+        self.swingTimer = self.swingTimer - dt
+        self.dy = self.dy + self.swingDirection * self.swingStrength * dt
+        self.dx = self.dx + self.swingDirection * 18 * dt
+
+        if self.swingTimer <= 0 then
+            self.swinging = false
+            self.swingOwner = nil
+            self.swingDirection = 1
+            self.swingTimer = 0
         end
     end
 end
@@ -89,6 +113,20 @@ function Ball:clearPower()
     self.trail = {}
 end
 
+function Ball:activateSwing(owner, direction)
+    self.swinging = true
+    self.swingOwner = owner
+    self.swingDirection = direction or 1
+    self.swingTimer = 0.6
+end
+
+function Ball:clearSwing()
+    self.swinging = false
+    self.swingOwner = nil
+    self.swingDirection = 1
+    self.swingTimer = 0
+end
+
 function Ball:render()
     if self.powered then
         for i = 1, #self.trail do
@@ -98,6 +136,8 @@ function Ball:render()
             love.graphics.rectangle('fill', point.x, point.y, self.width, self.height)
         end
         love.graphics.setColor(1, 1, 0, 1)
+    elseif self.swinging then
+        love.graphics.setColor(0.2, 0.5, 1, 1)
     else
         love.graphics.setColor(1, 1, 1, 1)
     end

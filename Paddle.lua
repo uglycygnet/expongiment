@@ -38,6 +38,10 @@ function Paddle:init(x, y, width, height)
     self.powerShots = 1
     self.powerReady = false
     self.powerUsed = false
+    self.swingShots = 1
+    self.swingReady = false
+    self.swingUsed = false
+    self.specialShotReady = false
 end
 
 function Paddle:update(dt)
@@ -78,7 +82,9 @@ end
     newest version of LÖVE2D, you can even draw rounded rectangles!
 ]]
 function Paddle:render()
-    if self.powerReady then
+    if self.swingReady then
+        love.graphics.setColor(0.2, 0.5, 1, 1)
+    elseif self.powerReady then
         love.graphics.setColor(1, 1, 0, 1)
     else
         love.graphics.setColor(1, 1, 1, 1)
