@@ -119,11 +119,11 @@ function love.load()
     ai = {
         difficulty = 'CARL',
         profiles = {
-            ABE = { maxSpeed = 120, gain = 1.0, error = 20, powerChance = 0.08, swingChance = 0.06 },
-            BOB = { maxSpeed = 220, gain = 2.0, error = 10, powerChance = 0.16, swingChance = 0.12 },
-            CARL = { maxSpeed = 450, gain = 10.0, error = 0, powerChance = 0.5, swingChance = 1.0 },
-            DAVE = { maxSpeed = 1000, gain = 11.0, error = 0, powerChance = 0.32, swingChance = 0.24 },
-            EVE = { maxSpeed = 1000, gain = 20.0, error = 0, powerChance = 0.4, swingChance = 0.3 }
+            ABE = { maxSpeed = 120, gain = 1.0, error = 20, powerChance = 0.9, swingChance = 0.23 },
+            BOB = { maxSpeed = 220, gain = 2.0, error = 10, powerChance = 0.33, swingChance = 0.75 },
+            CARL = { maxSpeed = 450, gain = 10.0, error = 0, powerChance = 0.8, swingChance = 0.8 },
+            DAVE = { maxSpeed = 1000, gain = 11.0, error = 0, powerChance = 0.66, swingChance = 0.66 },
+            EVE = { maxSpeed = 1000, gain = 20.0, error = 0, powerChance = 0.33, swingChance = 0.66 }
         }
     }
 
