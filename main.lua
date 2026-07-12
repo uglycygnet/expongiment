@@ -227,7 +227,7 @@ function love.update(dt)
                 player1.powerUsed = true
                 ball:activatePower(1)
                 player1:flashImpact(1)
-                multiplier = 1.35
+                multiplier = 2.0
                 triggerScreenShake(3.8 + (collisionSpeed / 170), 0.12)
             elseif ball.powered and ball.powerOwner == 2 then
                 ball:clearPower()
@@ -269,7 +269,7 @@ function love.update(dt)
                 player2.powerUsed = true
                 ball:activatePower(2)
                 player2:flashImpact(-1)
-                multiplier = 1.35
+                multiplier = 2.0
                 triggerScreenShake(3.8 + (collisionSpeed / 170), 0.12)
             elseif ball.powered and ball.powerOwner == 1 then
                 ball:clearPower()
@@ -521,7 +521,7 @@ function love.keypressed(key)
             player2.swingUsed = false
             player1.specialShotReady = false
             player2.specialShotReady = false
-            gameState = 'serve'
+            gameState = 'selectOpponent'
 
             ball:reset()
 
@@ -583,6 +583,9 @@ function love.draw()
         love.graphics.printf('Welcome to Pong!', 0, 10, VIRTUAL_WIDTH, 'center')
         love.graphics.printf('Press 1 for 1 Player', 0, 20, VIRTUAL_WIDTH, 'center')
         love.graphics.printf('Press 2 for 2 Players', 0, 32, VIRTUAL_WIDTH, 'center')
+        love.graphics.printf('W = up S = down A = swing D = power', 0, VIRTUAL_HEIGHT/2, VIRTUAL_WIDTH, 'left')
+        love.graphics.printf('Arrows: Up Down <- = swing -> = power', 0, VIRTUAL_HEIGHT/2, VIRTUAL_WIDTH, 'right')
+
     elseif gameState == 'selectOpponent' then
         -- UI messages
         love.graphics.setFont(smallFont)
