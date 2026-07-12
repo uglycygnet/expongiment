@@ -123,7 +123,7 @@ function love.load()
             BOB = { maxSpeed = 220, gain = 2.0, error = 10, powerChance = 0.33, swingChance = 0.75 },
             CARL = { maxSpeed = 450, gain = 10.0, error = 0, powerChance = 0.8, swingChance = 0.8 },
             DAVE = { maxSpeed = 1000, gain = 11.0, error = 0, powerChance = 0.66, swingChance = 0.66 },
-            EVE = { maxSpeed = 1000, gain = 20.0, error = 0, powerChance = 0.33, swingChance = 0.66 }
+            EVE = { maxSpeed = 1000, gain = 12.0, error = 0, powerChance = 0.33, swingChance = 0.66 }
         }
     }
 
