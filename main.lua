@@ -169,7 +169,18 @@ function love.update(dt)
         -- slightly increasing it, then altering the dy based on the position
         -- at which it collided, then playing a sound effect
         if ball:collides(player1) then
-            ball.dx = -ball.dx * 1.03
+            local multiplier = 1.03
+            if player1.powerReady and player1.powerShots > 0 then
+                player1.powerShots = player1.powerShots - 1
+                player1.powerReady = false
+                ball:activatePower(1)
+                player1:flashImpact(1)
+                multiplier = 1.35
+            elseif ball.powered and ball.powerOwner == 2 then
+                ball:clearPower()
+            end
+
+            ball.dx = -ball.dx * multiplier
             ball.x = player1.x + 5
 
             -- keep velocity going in the same direction, but randomize it
@@ -182,7 +193,18 @@ function love.update(dt)
             sounds['paddle_hit']:play()
         end
         if ball:collides(player2) then
-            ball.dx = -ball.dx * 1.03
+            local multiplier = 1.03
+            if player2.powerReady and player2.powerShots > 0 then
+                player2.powerShots = player2.powerShots - 1
+                player2.powerReady = false
+                ball:activatePower(2)
+                player2:flashImpact(-1)
+                multiplier = 1.35
+            elseif ball.powered and ball.powerOwner == 1 then
+                ball:clearPower()
+            end
+
+            ball.dx = -ball.dx * multiplier
             ball.x = player2.x - 4
 
             -- keep velocity going in the same direction, but randomize it
@@ -215,6 +237,7 @@ function love.update(dt)
         if ball.x < 0 then
             servingPlayer = 1
             player2Score = player2Score + 1
+            ball:clearPower()
             sounds['score']:play()
 
             -- if we've reached a score of 10, the game is over; set the
@@ -223,6 +246,10 @@ function love.update(dt)
                 winningPlayer = 2
                 gameState = 'done'
             else
+                player1.powerShots = 1
+                player2.powerShots = 1
+                player1.powerReady = false
+                player2.powerReady = false
                 gameState = 'serve'
                 -- places the ball in the middle of the screen, no velocity
                 ball:reset()
@@ -232,12 +259,17 @@ function love.update(dt)
         if ball.x > VIRTUAL_WIDTH then
             servingPlayer = 2
             player1Score = player1Score + 1
+            ball:clearPower()
             sounds['score']:play()
 
             if player1Score == 10 then
                 winningPlayer = 1
                 gameState = 'done'
             else
+                player1.powerShots = 1
+                player2.powerShots = 1
+                player1.powerReady = false
+                player2.powerReady = false
                 gameState = 'serve'
                 ball:reset()
             end
@@ -320,15 +352,31 @@ function love.keypressed(key)
         gameState = 'selectOpponent'
     elseif key == '2' and gameState == 'start' then
         gameMode = '2player'
+        player1.powerShots = 1
+        player2.powerShots = 1
+        player1.powerReady = false
+        player2.powerReady = false
         gameState = 'serve'
     -- if we press enter during either the start or serve phase, it should
     -- transition to the next appropriate state
+    elseif key == 'd' and gameState == 'play' then
+        if player1.powerShots > 0 then
+            player1.powerReady = true
+        end
+    elseif key == 'right' and gameState == 'play' then
+        if player2.powerShots > 0 then
+            player2.powerReady = true
+        end
     elseif key == 'enter' or key == 'return' then
         if gameState == 'serve' then
             gameState = 'play'
         elseif gameState == 'done' then
             -- game is simply in a restart phase here, but will set the serving
             -- player to the opponent of whomever won for fairness!
+            player1.powerShots = 1
+            player2.powerShots = 1
+            player1.powerReady = false
+            player2.powerReady = false
             gameState = 'serve'
 
             ball:reset()
@@ -356,6 +404,10 @@ function love.keypressed(key)
         elseif key == '5' then
             ai.difficulty = 'EVE'
         end
+        player1.powerShots = 1
+        player2.powerShots = 1
+        player1.powerReady = false
+        player2.powerReady = false
         gameState = 'serve'
     end
 end

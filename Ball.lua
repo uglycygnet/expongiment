@@ -24,6 +24,11 @@ function Ball:init(x, y, width, height)
     -- X and Y axis, since the ball can move in two dimensions
     self.dy = 0
     self.dx = 0
+
+    -- power-hit state
+    self.powered = false
+    self.powerOwner = nil
+    self.trail = {}
 end
 
 --[[
@@ -55,13 +60,48 @@ function Ball:reset()
     self.y = VIRTUAL_HEIGHT / 2 - 2
     self.dx = 0
     self.dy = 0
+    self.powered = false
+    self.powerOwner = nil
+    self.trail = {}
 end
 
 function Ball:update(dt)
     self.x = self.x + self.dx * dt
     self.y = self.y + self.dy * dt
+
+    if self.powered then
+        table.insert(self.trail, { x = self.x, y = self.y })
+        if #self.trail > 12 then
+            table.remove(self.trail, 1)
+        end
+    end
+end
+
+function Ball:activatePower(owner)
+    self.powered = true
+    self.powerOwner = owner
+    self.trail = {}
+end
+
+function Ball:clearPower()
+    self.powered = false
+    self.powerOwner = nil
+    self.trail = {}
 end
 
 function Ball:render()
+    if self.powered then
+        for i = 1, #self.trail do
+            local alpha = (i / #self.trail) * 0.7
+            love.graphics.setColor(1, 1, 0, alpha)
+            local point = self.trail[i]
+            love.graphics.rectangle('fill', point.x, point.y, self.width, self.height)
+        end
+        love.graphics.setColor(1, 1, 0, 1)
+    else
+        love.graphics.setColor(1, 1, 1, 1)
+    end
+
     love.graphics.rectangle('fill', self.x, self.y, self.width, self.height)
+    love.graphics.setColor(1, 1, 1, 1)
 end
