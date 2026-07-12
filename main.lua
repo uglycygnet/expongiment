@@ -115,12 +115,15 @@ function love.load()
     gameMode = nil
 
     -- AI settings: 'easy', 'medium', 'hard'
+    -- gain is like reflexes or reaction speed, error is like judgement 
     ai = {
-        difficulty = 'medium',
+        difficulty = 'CARL',
         profiles = {
-            easy = { maxSpeed = 120, gain = 2.0, error = 20 },
-            medium = { maxSpeed = 200, gain = 1.3, error = 12 },
-            hard = { maxSpeed = 320, gain = 1.0, error = 6 }
+            ABE = { maxSpeed = 120, gain = 1.0, error = 20 },
+            BOB = { maxSpeed = 220, gain = 2.0, error = 10 },
+            CARL = { maxSpeed = 450, gain = 10.0, error = 0 },
+            DAVE = { maxSpeed = 1000, gain = 11.0, error = 0 },
+            EVE = { maxSpeed = 1000, gain = 20.0, error = 0 }
         }
     }
 
@@ -129,6 +132,7 @@ function love.load()
     -- 2. 'serve' (waiting on a key press to serve the ball)
     -- 3. 'play' (the ball is in play, bouncing between paddles)
     -- 4. 'done' (the game is over, with a victor, ready for restart)
+    -- 5. 'selectOpponent' (waiting for player to select AI or 2-player mode)
     gameState = 'start'
 end
 
@@ -253,8 +257,8 @@ function love.update(dt)
     end
 
     -- player 2
-    if gameMode == '1player' then
-        local profile = ai.profiles[ai.difficulty] or ai.profiles.medium
+    if gameMode == '1player' and gameState ~= 'selectOpponent' then
+        local profile = ai.profiles[ai.difficulty] or ai.profiles.CARL
 
         -- Only actively track the ball when it's heading toward the AI or on AI's half.
         if ball.dx > 0 or ball.x > VIRTUAL_WIDTH / 2 then
@@ -313,7 +317,7 @@ function love.keypressed(key)
         love.event.quit()
     elseif key == '1' and gameState == 'start' then
         gameMode = '1player'
-        gameState = 'serve'
+        gameState = 'selectOpponent'
     elseif key == '2' and gameState == 'start' then
         gameMode = '2player'
         gameState = 'serve'
@@ -340,6 +344,19 @@ function love.keypressed(key)
                 servingPlayer = 1
             end
         end
+    elseif gameState == 'selectOpponent' then
+        if key == '1' then
+            ai.difficulty = 'ABE'
+        elseif key == '2' then
+            ai.difficulty = 'BOB'
+        elseif key == '3' then
+            ai.difficulty = 'CARL'
+        elseif key == '4' then
+            ai.difficulty = 'DAVE'
+        elseif key == '5' then
+            ai.difficulty = 'EVE'
+        end
+        gameState = 'serve'
     end
 end
 
@@ -360,12 +377,22 @@ function love.draw()
         love.graphics.printf('Welcome to Pong!', 0, 10, VIRTUAL_WIDTH, 'center')
         love.graphics.printf('Press 1 for 1 Player', 0, 20, VIRTUAL_WIDTH, 'center')
         love.graphics.printf('Press 2 for 2 Players', 0, 32, VIRTUAL_WIDTH, 'center')
+    elseif gameState == 'selectOpponent' then
+        -- UI messages
+        love.graphics.setFont(smallFont)
+        love.graphics.printf('Select Opponent:', 0, 10, VIRTUAL_WIDTH, 'center')
+        love.graphics.printf('Press 1 for Abe (Very Easy)', 0, 20, VIRTUAL_WIDTH, 'center')
+        love.graphics.printf('Press 2 for Bob (Easy)', 0, 32, VIRTUAL_WIDTH, 'center')
+        love.graphics.printf('Press 3 for Carl (Medium)', 0, 44, VIRTUAL_WIDTH, 'center')
+        love.graphics.printf('Press 4 for Dave (Hard)', 0, 56, VIRTUAL_WIDTH, 'center')
+        love.graphics.printf('Press 5 for Eve (Hell)', 0, 68, VIRTUAL_WIDTH, 'center')
     elseif gameState == 'serve' then
         -- UI messages
         love.graphics.setFont(smallFont)
         love.graphics.printf('Player ' .. tostring(servingPlayer) .. "'s serve!",
             0, 10, VIRTUAL_WIDTH, 'center')
         love.graphics.printf('Press Enter to serve!', 0, 20, VIRTUAL_WIDTH, 'center')
+
     elseif gameState == 'play' then
         -- no UI messages to display in play
     elseif gameState == 'done' then
@@ -379,6 +406,11 @@ function love.draw()
 
     -- show the score before ball is rendered so it can move over the text
     displayScore()
+    if gameMode == '1player' and gameState  ~= 'selectOpponent' then 
+        displayOpponentName()
+        displayOpponentStats()
+    end
+    
 
     player1:render()
     player2:render()
@@ -413,3 +445,21 @@ function displayFPS()
     love.graphics.printf('FPS: ' .. tostring(love.timer.getFPS()), 0, VIRTUAL_HEIGHT-10, VIRTUAL_WIDTH, 'center')
     love.graphics.setColor(255, 255, 255, 255)
 end
+
+function displayOpponentName()
+    -- simple FPS display across all states
+    love.graphics.setFont(smallFont)
+    --love.graphics.setColor(0, 255/255, 0, 255/255)
+    love.graphics.print('YOU', VIRTUAL_WIDTH / 2 - 50, VIRTUAL_HEIGHT / 3 -12)
+    love.graphics.print(ai.difficulty, VIRTUAL_WIDTH / 2 + 30, VIRTUAL_HEIGHT / 3 -12)
+    --love.graphics.setColor(255, 255, 255, 255)
+end
+
+function displayOpponentStats()
+    -- simple FPS display across all states
+    love.graphics.setFont(smallFont)
+    love.graphics.print('maxSpeed: ' .. tostring(ai.profiles[ai.difficulty].maxSpeed), VIRTUAL_WIDTH -75, VIRTUAL_HEIGHT - 48)
+    love.graphics.print('gain: ' .. tostring(ai.profiles[ai.difficulty].gain), VIRTUAL_WIDTH -75, VIRTUAL_HEIGHT - 36)
+    love.graphics.print('error: '.. tostring(ai.profiles[ai.difficulty].error), VIRTUAL_WIDTH -75, VIRTUAL_HEIGHT - 24)
+end
+
