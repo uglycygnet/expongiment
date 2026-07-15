@@ -131,13 +131,13 @@ function Ball:render()
     if self.powered then
         for i = 1, #self.trail do
             local alpha = (i / #self.trail) * 0.7
-            love.graphics.setColor(1, 1, 0, alpha)
+            love.graphics.setColor(0.95, 0.69, 0.18, alpha)
             local point = self.trail[i]
             love.graphics.rectangle('fill', point.x, point.y, self.width, self.height)
         end
         love.graphics.setColor(1, 1, 0, 1)
     elseif self.swinging then
-        love.graphics.setColor(0.2, 0.5, 1, 1)
+        love.graphics.setColor(0.49, 0.99, 0.99, 1)
     else
         love.graphics.setColor(1, 1, 1, 1)
     end

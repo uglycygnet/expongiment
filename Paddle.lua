@@ -83,13 +83,13 @@ end
 ]]
 function Paddle:render()
     if self.swingReady then
-        love.graphics.setColor(0.2, 0.5, 1, 1)
+        love.graphics.setColor(0.49, 0.99, 0.99, 1)
     elseif self.powerReady then
-        love.graphics.setColor(1, 1, 0, 1)
+        love.graphics.setColor(0.95, 0.69, 0.18, 1)
     else
         love.graphics.setColor(1, 1, 1, 1)
     end
 
-    love.graphics.rectangle('fill', self.x, self.y, self.width, self.height)
+    love.graphics.rectangle('line', self.x, self.y, self.width, self.height,self.width,2)
     love.graphics.setColor(1, 1, 1, 1)
 end

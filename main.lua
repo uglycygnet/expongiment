@@ -61,16 +61,23 @@ function love.load()
     love.graphics.setDefaultFilter('nearest', 'nearest')
 
     -- set the title of our application window
-    love.window.setTitle('Pong')
+    love.window.setTitle('Maxi-Paddles')
 
     -- seed the RNG so that calls to random are always random
     math.randomseed(os.time())
 
+    love.mouse.setVisible( false )
+
     -- initialize our nice-looking retro text fonts
-    smallFont = love.graphics.newFont('font.ttf', 8)
-    largeFont = love.graphics.newFont('font.ttf', 16)
-    scoreFont = love.graphics.newFont('font.ttf', 32)
+    smallFont = love.graphics.newFont('GameBoy.ttf', 8)
+    largeFont = love.graphics.newFont('GameBoy.ttf', 16)
+    scoreFont = love.graphics.newFont('MIB.ttf', 32)
+    menuTitleFont = love.graphics.newFont('MIB.ttf', 32)
+    titleFont = love.graphics.newFont('MIB.ttf', 54)
     love.graphics.setFont(smallFont)
+
+    -- get splash logo
+    splashLogo = love.graphics.newImage( "img/UglyCygnetLogo.png")
 
     -- set up our sound effects; later, we can just index this table and
     -- call each entry's `play` method
@@ -119,21 +126,28 @@ function love.load()
     ai = {
         difficulty = 'CARL',
         profiles = {
-            ABE = { maxSpeed = 120, gain = 1.0, error = 20, powerChance = 0.9, swingChance = 0.23 },
-            BOB = { maxSpeed = 220, gain = 2.0, error = 10, powerChance = 0.33, swingChance = 0.75 },
+            AL = { maxSpeed = 120, gain = 5.0, error = 20, powerChance = 0.9, swingChance = 0.23 },
+            BEV = { maxSpeed = 220, gain = 7.0, error = 10, powerChance = 0.33, swingChance = 0.75 },
             CARL = { maxSpeed = 450, gain = 10.0, error = 0, powerChance = 0.8, swingChance = 0.8 },
-            DAVE = { maxSpeed = 1000, gain = 11.0, error = 0, powerChance = 0.66, swingChance = 0.66 },
-            EVE = { maxSpeed = 1000, gain = 12.0, error = 0, powerChance = 0.33, swingChance = 0.66 }
+            DANI = { maxSpeed = 1000, gain = 11.0, error = 0, powerChance = 0.66, swingChance = 0.66 },
+            EDDY = { maxSpeed = 1000, gain = 12.0, error = 0, powerChance = 0.33, swingChance = 0.66 }
         }
     }
 
     -- the state of our game; can be any of the following:
+    -- 1. 'blank' (before splash logo)
+    -- 2. 'splash' (show logo)
+    -- 3. 'title' (title screen)
     -- 1. 'start' (the beginning of the game, before first serve)
     -- 2. 'serve' (waiting on a key press to serve the ball)
     -- 3. 'play' (the ball is in play, bouncing between paddles)
     -- 4. 'done' (the game is over, with a victor, ready for restart)
     -- 5. 'selectOpponent' (waiting for player to select AI or 2-player mode)
-    gameState = 'start'
+    gameState = 'blank'
+
+    blankTimer = 1
+    splashTimer = 2
+    titleTimer = 2
 
     -- screen shake state
     shakeTimeLeft = 0
@@ -191,7 +205,31 @@ end
 function love.update(dt)
     updateScreenShake(dt)
 
-    if gameState == 'serve' then
+    currentTime = love.timer.getTime()
+
+    if gameState == 'blank' then
+        -- waits a second before displaying splash
+        if currentTime > blankTimer then
+            gameState = 'splash'
+            triggerScreenShake(10,0.15)
+            sounds['score']:stop()
+            sounds['score']:play()
+        end
+    elseif gameState == 'splash' then
+        if currentTime > blankTimer + splashTimer then
+            gameState = "title"
+            triggerScreenShake(10,0.2)
+            sounds['score']:stop()
+            sounds['score']:play()
+        end
+    elseif gameState == 'title' then
+        if currentTime > blankTimer + splashTimer + titleTimer then
+            gameState = 'start'
+            triggerScreenShake(10,0.25)
+            sounds['score']:stop()
+            sounds['score']:play()
+        end
+    elseif gameState == 'serve' then
         -- before switching to play, initialize ball's velocity based
         -- on player who last scored
         ball.dy = math.random(-50, 50)
@@ -244,6 +282,7 @@ function love.update(dt)
             end
 
             player1.specialShotReady = false
+            sounds['paddle_hit']:stop()
             sounds['paddle_hit']:play()
         end
         if ball:collides(player2) then
@@ -286,6 +325,7 @@ function love.update(dt)
             end
 
             player2.specialShotReady = false
+            sounds['paddle_hit']:stop()
             sounds['paddle_hit']:play()
         end
 
@@ -294,14 +334,18 @@ function love.update(dt)
         if ball.y <= 0 then
             ball.y = 0
             ball.dy = -ball.dy
+            sounds['wall_hit']:stop()
             sounds['wall_hit']:play()
+            triggerScreenShake(5,0.1)
         end
 
         -- -4 to account for the ball's size
         if ball.y >= VIRTUAL_HEIGHT - 4 then
             ball.y = VIRTUAL_HEIGHT - 4
             ball.dy = -ball.dy
+            sounds['wall_hit']:stop()
             sounds['wall_hit']:play()
+            triggerScreenShake(5,0.1)
         end
 
         -- if we reach the left or right edge of the screen, go back to serve
@@ -310,7 +354,9 @@ function love.update(dt)
             servingPlayer = 1
             player2Score = player2Score + 1
             ball:clearPower()
+            sounds['score']:stop()
             sounds['score']:play()
+            triggerScreenShake(15,0.5)
 
             -- if we've reached a score of 10, the game is over; set the
             -- state to done so we can show the victory message
@@ -342,7 +388,9 @@ function love.update(dt)
             servingPlayer = 2
             player1Score = player1Score + 1
             ball:clearPower()
+            sounds['score']:stop()
             sounds['score']:play()
+            triggerScreenShake(15,0.5)
 
             if player1Score == 10 then
                 winningPlayer = 1
@@ -538,15 +586,15 @@ function love.keypressed(key)
         end
     elseif gameState == 'selectOpponent' then
         if key == '1' then
-            ai.difficulty = 'ABE'
+            ai.difficulty = 'AL'
         elseif key == '2' then
-            ai.difficulty = 'BOB'
+            ai.difficulty = 'BEV'
         elseif key == '3' then
             ai.difficulty = 'CARL'
         elseif key == '4' then
-            ai.difficulty = 'DAVE'
+            ai.difficulty = 'DANI'
         elseif key == '5' then
-            ai.difficulty = 'EVE'
+            ai.difficulty = 'EDDY'
         end
         player1.powerShots = 1
         player2.powerShots = 1
@@ -572,29 +620,42 @@ function love.draw()
     -- begin drawing with push, in our virtual resolution
     push.start()
 
-    love.graphics.clear(40/255, 45/255, 52/255, 255/255)
+    love.graphics.clear(0.05, 0.05, 0.05, 0.05)
 
     love.graphics.translate(shakeOffsetX, shakeOffsetY)
 
     -- render different things depending on which part of the game we're in
-    if gameState == 'start' then
+    if gameState == 'splash' then
+        --local xpos = math.floor(0.5 * (VIRTUAL_WIDTH+0.15*1499))
+        --local ypos = math.floor(   0.5 * (VIRTUAL_HEIGHT+0.15*1569))
+        love.graphics.setColor(1, 1, 1, 1)
+        love.graphics.draw(splashLogo,125,20,0, 0.125,0.125,0, 0,0,0)
+    elseif gameState == 'title' then
+        love.graphics.setFont(titleFont)
+        love.graphics.printf('MAXI-PADDLES', 0, VIRTUAL_HEIGHT/3, VIRTUAL_WIDTH, 'center')
+    elseif gameState == 'start' then
         -- UI messages
+        love.graphics.setFont(menuTitleFont)
+        love.graphics.printf('MAXI-PADDLES', 0, 10, VIRTUAL_WIDTH, 'center')
         love.graphics.setFont(smallFont)
-        love.graphics.printf('Welcome to Pong!', 0, 10, VIRTUAL_WIDTH, 'center')
-        love.graphics.printf('Press 1 for 1 Player', 0, 20, VIRTUAL_WIDTH, 'center')
-        love.graphics.printf('Press 2 for 2 Players', 0, 32, VIRTUAL_WIDTH, 'center')
-        love.graphics.printf('W = up S = down A = swing D = power', 0, VIRTUAL_HEIGHT/2, VIRTUAL_WIDTH, 'left')
-        love.graphics.printf('Arrows: Up Down <- = swing -> = power', 0, VIRTUAL_HEIGHT/2, VIRTUAL_WIDTH, 'right')
+        love.graphics.printf('Press 1 for 1 Player', 0, 44, VIRTUAL_WIDTH, 'center')
+        love.graphics.printf('Press 2 for 2 Players', 0, 56, VIRTUAL_WIDTH, 'center')
+        love.graphics.printf('A-SWINGSHOT', 0, VIRTUAL_HEIGHT/2, VIRTUAL_WIDTH, 'left')
+        love.graphics.printf('D-POWERSHOT', 0, VIRTUAL_HEIGHT/2+12, VIRTUAL_WIDTH, 'left')
+        love.graphics.printf('Left-SWING', 0, VIRTUAL_HEIGHT/2, VIRTUAL_WIDTH, 'right')
+        love.graphics.printf('Right-POWER', 0, VIRTUAL_HEIGHT/2+12, VIRTUAL_WIDTH, 'right')
 
     elseif gameState == 'selectOpponent' then
         -- UI messages
+        love.graphics.setFont(menuTitleFont)
+        love.graphics.printf('MAXI-PADDLES', 0, 10, VIRTUAL_WIDTH, 'center')
         love.graphics.setFont(smallFont)
-        love.graphics.printf('Select Opponent:', 0, 10, VIRTUAL_WIDTH, 'center')
-        love.graphics.printf('Press 1 for Abe (Very Easy)', 0, 20, VIRTUAL_WIDTH, 'center')
-        love.graphics.printf('Press 2 for Bob (Easy)', 0, 32, VIRTUAL_WIDTH, 'center')
-        love.graphics.printf('Press 3 for Carl (Medium)', 0, 44, VIRTUAL_WIDTH, 'center')
-        love.graphics.printf('Press 4 for Dave (Hard)', 0, 56, VIRTUAL_WIDTH, 'center')
-        love.graphics.printf('Press 5 for Eve (Hell)', 0, 68, VIRTUAL_WIDTH, 'center')
+        love.graphics.printf('Select Opponent:', 0, 44, VIRTUAL_WIDTH, 'center')
+        love.graphics.printf('Press 1 for AL - Very Easy', 0, 56, VIRTUAL_WIDTH, 'center')
+        love.graphics.printf('Press 2 for BEV - Easy', 0, 68, VIRTUAL_WIDTH, 'center')
+        love.graphics.printf('Press 3 for CARL - Medium', 0, 80, VIRTUAL_WIDTH, 'center')
+        love.graphics.printf('Press 4 for DANI - Hard', 0, 92, VIRTUAL_WIDTH, 'center')
+        love.graphics.printf('Press 5 for EDDY - Hell ', 0, 104, VIRTUAL_WIDTH, 'center')
     elseif gameState == 'serve' then
         -- UI messages
         love.graphics.setFont(smallFont)
@@ -613,21 +674,24 @@ function love.draw()
         love.graphics.printf('Press Enter to restart!', 0, 30, VIRTUAL_WIDTH, 'center')
     end
 
-    -- show the score before ball is rendered so it can move over the text
-    displayScore()
-    if gameMode == '1player' and gameState  ~= 'selectOpponent' then 
-        displayOpponentName()
-        displayOpponentStats()
-    end
-    DisplayPowerShotsRemaining()
-    DisplaySwingShotsRemaining()
+    if gameState == 'start' or gameState == 'serve' or gameState == 'play' then
+        -- show the score before ball is rendered so it can move over the text
+        displayScore()
+        if gameMode == '1player' and gameState  ~= 'selectOpponent' then 
+            displayOpponentName()
+            --displayOpponentStats()
+        end
+        DisplayPowerShotsRemaining()
+        DisplaySwingShotsRemaining()
 
-    player1:render()
-    player2:render()
-    ball:render()
+        player1:render()
+        player2:render()
+        ball:render()
+    end
 
     -- display FPS for debugging; simply comment out to remove
     --displayFPS()
+    --displayGameState()
 
     love.graphics.translate(-shakeOffsetX, -shakeOffsetY)
 
@@ -641,7 +705,7 @@ end
 function displayScore()
     -- score display
     love.graphics.setFont(scoreFont)
-    love.graphics.setColor(0.5, 0.5, 0.5, 1)
+    love.graphics.setColor(0.8, 0.8, 0.8, 1)
     love.graphics.print(tostring(player1Score), VIRTUAL_WIDTH / 2 - 50,
         VIRTUAL_HEIGHT / 3)
     love.graphics.print(tostring(player2Score), VIRTUAL_WIDTH / 2 + 30,
@@ -663,7 +727,7 @@ end
 function displayOpponentName()
     -- simple FPS display across all states
     love.graphics.setFont(smallFont)
-    love.graphics.setColor(0.5, 0.5, 0.5, 1)
+    love.graphics.setColor(0.8, 0.8, 0.8, 1)
     love.graphics.print('YOU', VIRTUAL_WIDTH / 2 - 50, VIRTUAL_HEIGHT / 3 -12)
     love.graphics.print(ai.difficulty, VIRTUAL_WIDTH / 2 + 30, VIRTUAL_HEIGHT / 3 -12)
     love.graphics.setColor(1, 1, 1, 1)
@@ -682,7 +746,7 @@ end
 function DisplayPowerShotsRemaining()
     -- simple FPS display across all states
     love.graphics.setFont(smallFont)
-    love.graphics.setColor(1, 1, 0, 1)
+    love.graphics.setColor(0.95, 0.69, 0.18, 1)
     love.graphics.printf('Power Shots: ' .. tostring(player1.powerShots), 0, VIRTUAL_HEIGHT-10, VIRTUAL_WIDTH, 'left')
     love.graphics.printf('Power Shots: ' .. tostring(player2.powerShots), 0, VIRTUAL_HEIGHT-10, VIRTUAL_WIDTH, 'right')
     love.graphics.setColor(1, 1, 1, 1)  
@@ -691,8 +755,16 @@ end
 function DisplaySwingShotsRemaining()
     -- simple FPS display across all states
     love.graphics.setFont(smallFont)
-    love.graphics.setColor(0.2, 0.5, 1, 1)
+    love.graphics.setColor(0.49, 0.99, 0.99, 1)
     love.graphics.printf('Swing Shots: ' .. tostring(player1.swingShots), 0, VIRTUAL_HEIGHT-22, VIRTUAL_WIDTH, 'left')
     love.graphics.printf('Swing Shots: ' .. tostring(player2.swingShots), 0, VIRTUAL_HEIGHT-22, VIRTUAL_WIDTH, 'right')
     love.graphics.setColor(1, 1, 1, 1)  
+end
+
+function displayGameState()
+    -- simple FPS display across all states
+    love.graphics.setFont(smallFont)
+    love.graphics.setColor(0, 1, 0, 1)
+    love.graphics.printf('State: ' .. gameState, 0, VIRTUAL_HEIGHT-10, VIRTUAL_WIDTH, 'center')
+    love.graphics.setColor(1, 1, 1, 1)
 end
