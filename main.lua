@@ -569,7 +569,9 @@ function love.keypressed(key)
             player2.swingUsed = false
             player1.specialShotReady = false
             player2.specialShotReady = false
-            gameState = 'selectOpponent'
+            gameMode = nil
+            gameState = 'start'
+            
 
             ball:reset()
 
@@ -669,9 +671,9 @@ function love.draw()
         -- UI messages
         love.graphics.setFont(largeFont)
         love.graphics.printf('Player ' .. tostring(winningPlayer) .. ' wins!',
-            0, 10, VIRTUAL_WIDTH, 'center')
+            0, VIRTUAL_HEIGHT/3, VIRTUAL_WIDTH, 'center')
         love.graphics.setFont(smallFont)
-        love.graphics.printf('Press Enter to restart!', 0, 30, VIRTUAL_WIDTH, 'center')
+        love.graphics.printf('Press Enter to restart!', 0, VIRTUAL_HEIGHT/3+20, VIRTUAL_WIDTH, 'center')
     end
 
     if gameState == 'start' or gameState == 'serve' or gameState == 'play' then
@@ -681,8 +683,11 @@ function love.draw()
             displayOpponentName()
             --displayOpponentStats()
         end
-        DisplayPowerShotsRemaining()
-        DisplaySwingShotsRemaining()
+
+        if gameState ~= 'start' then
+            DisplayPowerShotsRemaining()
+            DisplaySwingShotsRemaining()
+        end
 
         player1:render()
         player2:render()
