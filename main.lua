@@ -506,6 +506,9 @@ function love.keypressed(key)
     elseif key == '1' and gameState == 'start' then
         gameMode = '1player'
         gameState = 'selectOpponent'
+        triggerScreenShake(10,0.15)  
+        sounds['paddle_hit']:stop()
+        sounds['paddle_hit']:play()   
     elseif key == '2' and gameState == 'start' then
         gameMode = '2player'
         player1.powerShots = 1
@@ -523,6 +526,9 @@ function love.keypressed(key)
         player1.specialShotReady = false
         player2.specialShotReady = false
         gameState = 'serve'
+        triggerScreenShake(10,0.15)  
+        sounds['paddle_hit']:stop()
+        sounds['paddle_hit']:play()  
     -- if we press enter during either the start or serve phase, it should
     -- transition to the next appropriate state
     elseif key == 'a' and gameState == 'play' then
@@ -549,7 +555,7 @@ function love.keypressed(key)
             player2.swingReady = false
             player2.specialShotReady = true
         end
-    elseif key == 'enter' or key == 'return' then
+    elseif key == 'enter' or key == 'return' or key == 'space' then
         if gameState == 'serve' then
             gameState = 'play'
         elseif gameState == 'done' then
@@ -586,6 +592,9 @@ function love.keypressed(key)
                 servingPlayer = 1
             end
         end
+        triggerScreenShake(10,0.15)  
+        sounds['paddle_hit']:stop()
+        sounds['paddle_hit']:play()  
     elseif gameState == 'selectOpponent' then
         if key == '1' then
             ai.difficulty = 'AL'
@@ -611,6 +620,9 @@ function love.keypressed(key)
         player1.swingUsed = false
         player2.swingUsed = false
         gameState = 'serve'
+        triggerScreenShake(10,0.15)  
+        sounds['paddle_hit']:stop()
+        sounds['paddle_hit']:play()  
     end
 end
 
@@ -622,7 +634,7 @@ function love.draw()
     -- begin drawing with push, in our virtual resolution
     push.start()
 
-    love.graphics.clear(0.05, 0.05, 0.05, 0.05)
+    love.graphics.clear(0.05, 0.05, 0.05, 1)
 
     love.graphics.translate(shakeOffsetX, shakeOffsetY)
 
@@ -663,7 +675,7 @@ function love.draw()
         love.graphics.setFont(smallFont)
         love.graphics.printf('Player ' .. tostring(servingPlayer) .. "'s serve!",
             0, 10, VIRTUAL_WIDTH, 'center')
-        love.graphics.printf('Press Enter to serve!', 0, 20, VIRTUAL_WIDTH, 'center')
+        love.graphics.printf('Press Enter or Space to serve!', 0, 20, VIRTUAL_WIDTH, 'center')
 
     elseif gameState == 'play' then
         -- no UI messages to display in play
@@ -673,7 +685,7 @@ function love.draw()
         love.graphics.printf('Player ' .. tostring(winningPlayer) .. ' wins!',
             0, VIRTUAL_HEIGHT/3, VIRTUAL_WIDTH, 'center')
         love.graphics.setFont(smallFont)
-        love.graphics.printf('Press Enter to restart!', 0, VIRTUAL_HEIGHT/3+20, VIRTUAL_WIDTH, 'center')
+        love.graphics.printf('Press Enter or Space to restart!', 0, VIRTUAL_HEIGHT/3+20, VIRTUAL_WIDTH, 'center')
     end
 
     if gameState == 'start' or gameState == 'serve' or gameState == 'play' then
